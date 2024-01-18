@@ -1,0 +1,6 @@
+.env
+node_modules
+key_generate.js
+private-key.pem
+public.pem
+key.pem
