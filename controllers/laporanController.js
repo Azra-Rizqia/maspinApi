@@ -1,13 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const Laporan = require('../models/laporanModel');
-const fs = require('fs')
 
 const validCategories = ['Lalu Lintas', 'Fasilitas Publik', 'Kebersihan', 'Ketertiban'];
 const createLaporan = async (req, res) => {
   try {
     const { kategori_masalah, detail_masalah, lokasi } = req.body;
     const userId = req.user.id;
-    const laporanPath = req.file ? req.file.path : null;
+    const laporanName = req.file ? req.file.filename : null;
 
     if (!kategori_masalah || !detail_masalah || !lokasi) {
       return res.status(400).json({
@@ -23,12 +22,9 @@ const createLaporan = async (req, res) => {
       });
     }
 
-    const laporanData = fs.readFileSync(laporanPath);
-    const laporanString = laporanData.toString('base64');
-
     const laporan = await Laporan.create({
       user: userId,
-      image_laporan: laporanString,
+      image_laporan: `${process.env.CYCLIC_URL}/laporan/${laporanName}`,
       kategori_masalah,
       detail_masalah,
       lokasi,
@@ -116,10 +112,7 @@ const updateLaporan = async (req, res) => {
   try {
     const laporanId = req.params.id;
     const { kategori_masalah, detail_masalah, lokasi } = req.body;
-    const laporanPath = req.file ? req.file.path : null;
-
-    const laporanData = fs.readFileSync(laporanPath);
-    const laporanString = laporanData.toString('base64');
+    const laporanName = req.file ? req.file.name : null;
 
     if (!validCategories.includes(kategori_masalah)) {
       return res.status(400).json({
@@ -131,7 +124,7 @@ const updateLaporan = async (req, res) => {
     const laporan = await Laporan.findByIdAndUpdate(
       laporanId,
       {
-        image_laporan: laporanString,
+        image_laporan: `${process.env.CYCLIC_URL}/laporan/${laporanName}`,
         kategori_masalah,
         detail_masalah,
         lokasi,

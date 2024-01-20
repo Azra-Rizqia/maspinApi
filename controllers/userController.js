@@ -2,7 +2,6 @@ const User = require('../models/userModel');
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const asyncHandler = require('express-async-handler')
-const fs = require('fs')
 
 const registerUser = asyncHandler(async (req, res) => {
     const { nama, nik, noHP, email, password, confirmPassword, ktp, statusValidate } = req.body
@@ -126,12 +125,14 @@ const getUser = asyncHandler(async (req, res) => {
 })
 
 const validateAccount = async (req, res) => {
+    let updatedUser;
+
     try {
         const userId = req.user.id;
         const { nik } = req.body;
-        const ktpPath = req.file ? req.file.path : null;
+        const ktpFileName = req.file ? req.file.filename : null;
 
-        if (!nik || !ktpPath) {
+        if (!nik || !ktpFileName) {
             return res.status(400).json({
                 success: false,
                 message: 'Mohon masukkan nik dan unggah foto KTP'
@@ -147,22 +148,21 @@ const validateAccount = async (req, res) => {
             });
         }
 
-        const ktpData = fs.readFileSync(ktpPath);
-
-        const ktpString = ktpData.toString('base64');
-
-        const updatedUser = await User.findByIdAndUpdate(
+        updatedUser = await User.findByIdAndUpdate(
             userId,
             {
                 nik,
-                ktp: ktpString,
+                ktp: `${process.env.CYCLIC_URL}/ktp/${ktpFileName}`,
                 statusValidate: true
             },
             { new: true }
         );
 
         if (!updatedUser) {
-            return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan' });
+            return res.status(404).json({
+                success: false,
+                message: 'Pengguna tidak ditemukan'
+            });
         }
 
         res.status(200).json({
@@ -181,7 +181,13 @@ const validateAccount = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+
+        if (!updatedUser) {
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
     }
 };
 
